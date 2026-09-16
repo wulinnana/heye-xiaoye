@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>合成夜宵</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background: #efe6d4;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #wrap {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #game {
+      display: block;
+      width: min(430px, 100vw);
+      height: 100%;
+      background: #efe6d4;
+    }
+  </style>
+</head>
+<body>
+  <div id="wrap"><canvas id="game"></canvas></div>
+  <script>window.GameGlobal = window</script>
+  <script src="js/boot.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/platform.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/ads.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/scenes/home.js"></script>
+  <script src="js/scenes/province.js"></script>
+  <script src="js/scenes/city.js"></script>
+  <script src="js/scenes/play.js"></script>
+  <script src="js/scenes/result.js"></script>
+  <script src="js/scenes/album.js"></script>
+  <script src="js/scenes/settings.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
