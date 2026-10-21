@@ -242,7 +242,11 @@ GameGlobal.GameReg('audio', function (GM) {
     drop: function () { beep(180, 0.12, 'sine', 0.08) },
     merge: function (type) { beep(320 + type * 28, 0.16, 'triangle', 0.11) },
     combo: function () { beep(640, 0.1, 'square', 0.06); setTimeout(function () { beep(820, 0.12, 'square', 0.06) }, 70) },
-    over: function () { beep(160, 0.35, 'sawtooth', 0.08) },
+    over: function () {
+      beep(340, 0.1, 'triangle', 0.07)
+      setTimeout(function () { beep(220, 0.16, 'triangle', 0.06) }, 120)
+      setTimeout(function () { beep(150, 0.22, 'triangle', 0.05) }, 260)
+    },
     win: function () { beep(440, 0.12, 'triangle', 0.1); setTimeout(function () { beep(660, 0.18, 'triangle', 0.1) }, 90) }
   }
 })

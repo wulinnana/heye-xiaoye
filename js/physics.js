@@ -38,7 +38,7 @@ GameGlobal.GameReg('physics', function () {
       b.vx *= Math.max(0, 1 - 0.35 * dt)
       b.rot += b.spin * dt
       b.spin *= Math.max(0, 1 - 1.6 * dt)
-      if (b.pop < 1) b.pop = Math.min(1, b.pop + dt * 5)
+      if (b.pop < 1) b.pop = Math.min(1, b.pop + dt * 2.6)
       if (b.lock > 0) b.lock -= dt
 
       if (b.y + b.r > world.floor) {
@@ -62,58 +62,52 @@ GameGlobal.GameReg('physics', function () {
       }
     }
 
-    const used = {}
-    const merges = []
-
-    function findMerges() {
+    function closestMerge() {
+      let best = null
+      let bestD = 1e9
       for (let i = 0; i < bodies.length; i++) {
         const a = bodies[i]
-        if (a.held || used[a.id]) continue
+        if (a.held || a.lock > 0) continue
         for (let j = i + 1; j < bodies.length; j++) {
           const b = bodies[j]
-          if (b.held || used[b.id]) continue
+          if (b.held || b.lock > 0) continue
           if (a.type !== b.type) continue
           const dx = b.x - a.x
           const dy = b.y - a.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < (a.r + b.r) * 1.28) {
-            used[a.id] = true
-            used[b.id] = true
-            merges.push([a, b])
+          const reach = (a.r + b.r) * 1.08
+          if (dist < reach && dist < bestD) {
+            bestD = dist
+            best = [a, b]
           }
         }
       }
+      return best
     }
 
-    function applyMerges() {
-      let n = 0
-      for (let i = 0; i < merges.length; i++) {
-        const a = merges[i][0]
-        const b = merges[i][1]
-        const ai = bodies.indexOf(a)
-        const bi = bodies.indexOf(b)
-        if (ai < 0 || bi < 0) continue
-        const nx = (a.x + b.x) / 2
-        const ny = (a.y + b.y) / 2
-        const nextType = a.type + 1
-        bodies.splice(Math.max(ai, bi), 1)
-        bodies.splice(Math.min(ai, bi), 1)
-        n += 1
-        if (nextType <= maxType) {
-          const nb = makeBody(nx, ny, nextType, world.boxW, maxType)
-          nb.live = true
-          nb.pop = 1
-          nb.lock = 0
-          nb.vy = -8
-          bodies.push(nb)
-          events.push({ kind: 'merge', x: nx, y: ny, type: nextType, body: nb })
-        } else {
-          events.push({ kind: 'burst', x: nx, y: ny, type: a.type })
-        }
+    function applyOne(pair) {
+      const a = pair[0]
+      const b = pair[1]
+      const ai = bodies.indexOf(a)
+      const bi = bodies.indexOf(b)
+      if (ai < 0 || bi < 0) return false
+      const nx = (a.x + b.x) / 2
+      const ny = (a.y + b.y) / 2
+      const nextType = a.type + 1
+      bodies.splice(Math.max(ai, bi), 1)
+      bodies.splice(Math.min(ai, bi), 1)
+      if (nextType <= maxType) {
+        const nb = makeBody(nx, ny, nextType, world.boxW, maxType)
+        nb.live = true
+        nb.pop = 0.62
+        nb.lock = 0.34
+        nb.vy = -16
+        bodies.push(nb)
+        events.push({ kind: 'merge', x: nx, y: ny, type: nextType, body: nb })
+      } else {
+        events.push({ kind: 'burst', x: nx, y: ny, type: a.type })
       }
-      merges.length = 0
-      for (const k in used) delete used[k]
-      return n
+      return true
     }
 
     for (let k = 0; k < 4; k++) {
@@ -156,9 +150,13 @@ GameGlobal.GameReg('physics', function () {
       }
     }
 
-    for (let c = 0; c < 6; c++) {
-      findMerges()
-      if (!applyMerges()) break
+    if (!world.noMerge) {
+      world.mergeWait = world.mergeWait || 0
+      if (world.mergeWait > 0) world.mergeWait = Math.max(0, world.mergeWait - dt)
+      else {
+        const pair = closestMerge()
+        if (pair && applyOne(pair)) world.mergeWait = 0.16
+      }
     }
 
     return events

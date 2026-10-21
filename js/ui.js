@@ -315,176 +315,363 @@ GameGlobal.GameReg('ui', function (GM) {
     ctx.fill()
   }
 
+  function foodVar(food) {
+    const s = (food && food.name) || ''
+    let h = 2166136261
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i)
+      h = Math.imul(h, 16777619)
+    }
+    return h >>> 0
+  }
+
+  function blob(ctx, x, y, rx, ry, rot, fill) {
+    ctx.beginPath()
+    ctx.ellipse(x, y, Math.max(0.6, rx), Math.max(0.6, ry), rot || 0, 0, Math.PI * 2)
+    ctx.fillStyle = fill
+    ctx.fill()
+  }
+
   function drawFoodBody(ctx, x, y, r, food) {
     const c0 = food.colors[0]
     const c1 = food.colors[1]
     const kind = food.kind || 'round'
     const inner = r * 0.78
+    const v = foodVar(food) % 4
 
     if (kind === 'bowl') {
       drawBowlBase(ctx, x, y, inner, c0, c1)
-      ctx.fillStyle = c1
-      for (let i = 0; i < 4; i++) {
+      if (v === 0) {
+        for (let i = 0; i < 4; i++) blob(ctx, x - inner * 0.32 + i * inner * 0.22, y + inner * 0.02, inner * 0.11, inner * 0.07, 0.3, c1)
+      } else if (v === 1) {
+        ctx.strokeStyle = 'rgba(255,248,230,0.7)'
+        ctx.lineWidth = Math.max(1.2, r * 0.045)
         ctx.beginPath()
-        ctx.ellipse(x - inner * 0.32 + i * inner * 0.22, y + inner * 0.04, inner * 0.12, inner * 0.07, 0.3, 0, Math.PI * 2)
-        ctx.fill()
+        ctx.ellipse(x, y - inner * 0.02, inner * 0.42, inner * 0.18, 0.4, 0, Math.PI * 1.6)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.ellipse(x, y + inner * 0.02, inner * 0.22, inner * 0.1, -0.3, 0, Math.PI * 1.4)
+        ctx.stroke()
+      } else if (v === 2) {
+        blob(ctx, x - inner * 0.16, y, inner * 0.2, inner * 0.14, 0, '#f4e2a0')
+        blob(ctx, x + inner * 0.18, y + inner * 0.06, inner * 0.16, inner * 0.1, 0.6, '#3d7a3a')
+      } else {
+        for (let i = 0; i < 3; i++) blob(ctx, x - inner * 0.22 + i * inner * 0.22, y - inner * 0.02, inner * 0.16, inner * 0.08, -0.4, i === 1 ? '#f3d2a2' : c1)
       }
       steam(ctx, x, y - inner * 0.42, r)
     } else if (kind === 'noodle') {
       drawBowlBase(ctx, x, y, inner, c0, c1)
-      ctx.strokeStyle = '#f0d090'
-      ctx.lineWidth = Math.max(2, r * 0.09)
       ctx.lineCap = 'round'
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath()
-        const oy = y - inner * 0.16 + i * inner * 0.09
-        ctx.moveTo(x - inner * 0.5, oy)
-        ctx.bezierCurveTo(x - inner * 0.1, oy + inner * 0.16, x + inner * 0.1, oy - inner * 0.14, x + inner * 0.5, oy + inner * 0.04)
-        ctx.stroke()
+      ctx.lineWidth = Math.max(1.6, r * 0.07)
+      if (v === 1) {
+        ctx.strokeStyle = '#f7f0dc'
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath()
+          const ox = x - inner * 0.36 + i * inner * 0.22
+          ctx.moveTo(ox, y - inner * 0.22)
+          ctx.lineTo(ox + inner * 0.08, y + inner * 0.2)
+          ctx.stroke()
+        }
+        blob(ctx, x + inner * 0.28, y - inner * 0.02, inner * 0.12, inner * 0.08, 0.5, '#e07048')
+      } else if (v === 2) {
+        ctx.strokeStyle = '#6a3818'
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath()
+          const oy = y - inner * 0.14 + i * inner * 0.1
+          ctx.moveTo(x - inner * 0.46, oy)
+          ctx.quadraticCurveTo(x, oy + inner * 0.1, x + inner * 0.46, oy - inner * 0.02)
+          ctx.stroke()
+        }
+        blob(ctx, x, y - inner * 0.04, inner * 0.22, inner * 0.12, 0, '#4a2410')
+      } else if (v === 3) {
+        ctx.strokeStyle = '#f0d090'
+        for (let i = 0; i < 4; i++) {
+          ctx.beginPath()
+          const oy = y - inner * 0.12 + i * inner * 0.09
+          ctx.moveTo(x - inner * 0.48, oy)
+          ctx.bezierCurveTo(x - inner * 0.1, oy + inner * 0.12, x + inner * 0.1, oy - inner * 0.1, x + inner * 0.48, oy)
+          ctx.stroke()
+        }
+        blob(ctx, x + inner * 0.06, y - inner * 0.06, inner * 0.16, inner * 0.12, 0, '#f6e7b0')
+      } else {
+        ctx.strokeStyle = '#f0d090'
+        for (let i = 0; i < 5; i++) {
+          ctx.beginPath()
+          const oy = y - inner * 0.16 + i * inner * 0.09
+          ctx.moveTo(x - inner * 0.5, oy)
+          ctx.bezierCurveTo(x - inner * 0.1, oy + inner * 0.16, x + inner * 0.1, oy - inner * 0.14, x + inner * 0.5, oy + inner * 0.04)
+          ctx.stroke()
+        }
+        blob(ctx, x + inner * 0.22, y - inner * 0.02, inner * 0.09, inner * 0.09, 0, '#c41e2a')
       }
-      ctx.fillStyle = '#c41e2a'
-      ctx.beginPath()
-      ctx.arc(x + inner * 0.22, y - inner * 0.02, inner * 0.09, 0, Math.PI * 2)
-      ctx.fill()
       steam(ctx, x, y - inner * 0.48, r)
     } else if (kind === 'bun') {
-      ctx.beginPath()
-      ctx.ellipse(x, y + inner * 0.08, inner * 0.82, inner * 0.62, 0, 0, Math.PI * 2)
-      ctx.fillStyle = '#f4e2b8'
-      ctx.fill()
-      ctx.beginPath()
-      ctx.ellipse(x, y - inner * 0.06, inner * 0.78, inner * 0.58, 0, 0, Math.PI * 2)
-      ctx.fillStyle = '#fff6dc'
-      ctx.fill()
-      ctx.strokeStyle = '#c9a060'
-      ctx.lineWidth = Math.max(1.1, r * 0.045)
-      for (let i = -2; i <= 2; i++) {
+      if (v === 1) {
         ctx.beginPath()
-        ctx.moveTo(x, y - inner * 0.5)
-        ctx.quadraticCurveTo(x + i * inner * 0.18, y - inner * 0.08, x + i * inner * 0.08, y + inner * 0.22)
+        ctx.moveTo(x - inner * 0.7, y + inner * 0.05)
+        ctx.quadraticCurveTo(x, y - inner * 0.85, x + inner * 0.7, y + inner * 0.05)
+        ctx.quadraticCurveTo(x, y + inner * 0.45, x - inner * 0.7, y + inner * 0.05)
+        ctx.fillStyle = '#fff6dc'
+        ctx.fill()
+        ctx.strokeStyle = '#c9a060'
+        ctx.lineWidth = Math.max(1.1, r * 0.04)
+        for (let i = -2; i <= 2; i++) {
+          ctx.beginPath()
+          ctx.moveTo(x + i * inner * 0.12, y - inner * 0.28)
+          ctx.lineTo(x + i * inner * 0.16, y + inner * 0.08)
+          ctx.stroke()
+        }
+      } else if (v === 2) {
+        blob(ctx, x, y + inner * 0.06, inner * 0.78, inner * 0.48, 0, '#e6b45a')
+        blob(ctx, x, y - inner * 0.02, inner * 0.7, inner * 0.36, 0, '#f3d48a')
+        ctx.strokeStyle = '#8a4a18'
+        ctx.lineWidth = Math.max(1.2, r * 0.045)
+        ctx.beginPath()
+        ctx.moveTo(x - inner * 0.4, y - inner * 0.08)
+        ctx.lineTo(x + inner * 0.42, y + inner * 0.08)
+        ctx.moveTo(x - inner * 0.3, y + inner * 0.12)
+        ctx.lineTo(x + inner * 0.36, y - inner * 0.02)
         ctx.stroke()
+        blob(ctx, x + inner * 0.18, y - inner * 0.08, inner * 0.1, inner * 0.07, 0, '#3d7a3a')
+      } else if (v === 3) {
+        blob(ctx, x, y + inner * 0.08, inner * 0.72, inner * 0.42, 0.15, '#f7f1e2')
+        blob(ctx, x - inner * 0.08, y - inner * 0.02, inner * 0.58, inner * 0.3, 0.15, c0)
+        ctx.strokeStyle = '#f7f1e2'
+        ctx.lineWidth = Math.max(1.4, r * 0.05)
+        ctx.beginPath()
+        ctx.moveTo(x - inner * 0.5, y + inner * 0.02)
+        ctx.quadraticCurveTo(x, y - inner * 0.18, x + inner * 0.5, y + inner * 0.06)
+        ctx.stroke()
+      } else {
+        blob(ctx, x, y + inner * 0.08, inner * 0.82, inner * 0.62, 0, '#f4e2b8')
+        blob(ctx, x, y - inner * 0.06, inner * 0.78, inner * 0.58, 0, '#fff6dc')
+        ctx.strokeStyle = '#c9a060'
+        ctx.lineWidth = Math.max(1.1, r * 0.045)
+        for (let i = -2; i <= 2; i++) {
+          ctx.beginPath()
+          ctx.moveTo(x, y - inner * 0.5)
+          ctx.quadraticCurveTo(x + i * inner * 0.18, y - inner * 0.08, x + i * inner * 0.08, y + inner * 0.22)
+          ctx.stroke()
+        }
+        blob(ctx, x, y + inner * 0.42, inner * 0.7, inner * 0.16, 0, c0)
       }
-      ctx.beginPath()
-      ctx.ellipse(x, y + inner * 0.42, inner * 0.7, inner * 0.16, 0, 0, Math.PI * 2)
-      ctx.fillStyle = c0
-      ctx.fill()
-      steam(ctx, x, y - inner * 0.55, r)
+      if (v !== 2) steam(ctx, x, y - inner * 0.55, r)
     } else if (kind === 'meat') {
-      ctx.beginPath()
-      ctx.ellipse(x, y + inner * 0.06, inner * 0.86, inner * 0.58, -0.25, 0, Math.PI * 2)
-      ctx.fillStyle = c1
-      ctx.fill()
-      ctx.beginPath()
-      ctx.ellipse(x, y, inner * 0.78, inner * 0.5, -0.25, 0, Math.PI * 2)
-      ctx.fillStyle = c0
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(90,16,8,0.45)'
-      ctx.lineWidth = Math.max(1.2, r * 0.05)
-      for (let i = -1; i <= 1; i++) {
+      if (v === 1) {
+        blob(ctx, x - inner * 0.05, y + inner * 0.05, inner * 0.55, inner * 0.38, -0.6, c1)
+        blob(ctx, x - inner * 0.08, y, inner * 0.46, inner * 0.3, -0.6, c0)
+        blob(ctx, x + inner * 0.42, y - inner * 0.28, inner * 0.16, inner * 0.16, 0, '#f3e2c0')
+        ctx.strokeStyle = '#f3e2c0'
+        ctx.lineWidth = Math.max(2, r * 0.06)
         ctx.beginPath()
-        ctx.moveTo(x - inner * 0.4, y + i * inner * 0.16)
-        ctx.quadraticCurveTo(x, y + i * inner * 0.22, x + inner * 0.42, y + i * inner * 0.1)
+        ctx.moveTo(x + inner * 0.28, y - inner * 0.12)
+        ctx.lineTo(x + inner * 0.62, y - inner * 0.48)
         ctx.stroke()
+      } else if (v === 2) {
+        for (let i = 0; i < 3; i++) blob(ctx, x - inner * 0.28 + i * inner * 0.28, y + (i === 1 ? -inner * 0.12 : inner * 0.08), inner * 0.22, inner * 0.16, 0.2, i === 1 ? c0 : c1)
+      } else if (v === 3) {
+        for (let i = -1; i <= 1; i++) blob(ctx, x + i * inner * 0.22, y + Math.abs(i) * inner * 0.08, inner * 0.2, inner * 0.42, i * 0.35, i === 0 ? c0 : c1)
+      } else {
+        blob(ctx, x, y + inner * 0.06, inner * 0.86, inner * 0.58, -0.25, c1)
+        blob(ctx, x, y, inner * 0.78, inner * 0.5, -0.25, c0)
+        ctx.strokeStyle = 'rgba(90,16,8,0.45)'
+        ctx.lineWidth = Math.max(1.2, r * 0.05)
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath()
+          ctx.moveTo(x - inner * 0.4, y + i * inner * 0.16)
+          ctx.quadraticCurveTo(x, y + i * inner * 0.22, x + inner * 0.42, y + i * inner * 0.1)
+          ctx.stroke()
+        }
+        blob(ctx, x - inner * 0.18, y - inner * 0.16, inner * 0.28, inner * 0.14, -0.5, 'rgba(255,230,180,0.35)')
       }
-      ctx.beginPath()
-      ctx.ellipse(x - inner * 0.18, y - inner * 0.16, inner * 0.28, inner * 0.14, -0.5, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(255,230,180,0.35)'
-      ctx.fill()
     } else if (kind === 'grill') {
       ctx.strokeStyle = '#5a3a28'
       ctx.lineWidth = Math.max(2, r * 0.07)
-      ctx.beginPath()
-      ctx.moveTo(x - inner * 0.72, y + inner * 0.18)
-      ctx.lineTo(x + inner * 0.72, y - inner * 0.18)
-      ctx.stroke()
-      for (let i = -1; i <= 1; i++) {
+      ctx.lineCap = 'round'
+      if (v === 1) {
         ctx.beginPath()
-        ctx.ellipse(x + i * inner * 0.28, y - i * inner * 0.08, inner * 0.22, inner * 0.16, -0.4, 0, Math.PI * 2)
-        ctx.fillStyle = i === 0 ? c0 : c1
-        ctx.fill()
+        ctx.moveTo(x - inner * 0.15, y + inner * 0.45)
+        ctx.lineTo(x + inner * 0.15, y - inner * 0.55)
+        ctx.stroke()
+        blob(ctx, x + inner * 0.02, y - inner * 0.02, inner * 0.22, inner * 0.55, 0.35, c0)
+        blob(ctx, x + inner * 0.08, y - inner * 0.08, inner * 0.1, inner * 0.28, 0.35, 'rgba(255,220,160,0.35)')
+      } else if (v === 2) {
+        ctx.beginPath()
+        ctx.moveTo(x - inner * 0.7, y + inner * 0.22)
+        ctx.lineTo(x + inner * 0.7, y - inner * 0.22)
+        ctx.stroke()
+        blob(ctx, x - inner * 0.28, y + inner * 0.1, inner * 0.16, inner * 0.22, -0.5, '#3d7a3a')
+        blob(ctx, x, y, inner * 0.2, inner * 0.16, -0.4, c0)
+        blob(ctx, x + inner * 0.3, y - inner * 0.1, inner * 0.16, inner * 0.2, -0.5, c1)
+      } else if (v === 3) {
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath()
+          ctx.moveTo(x - inner * 0.55, y + inner * 0.28 + i * inner * 0.16)
+          ctx.lineTo(x + inner * 0.55, y - inner * 0.05 + i * inner * 0.16)
+          ctx.stroke()
+          blob(ctx, x + i * inner * 0.22, y + i * inner * 0.04, inner * 0.2, inner * 0.12, -0.2, i === 0 ? c0 : c1)
+        }
+      } else {
+        ctx.beginPath()
+        ctx.moveTo(x - inner * 0.72, y + inner * 0.18)
+        ctx.lineTo(x + inner * 0.72, y - inner * 0.18)
+        ctx.stroke()
+        for (let i = -1; i <= 1; i++) blob(ctx, x + i * inner * 0.28, y - i * inner * 0.08, inner * 0.22, inner * 0.16, -0.4, i === 0 ? c0 : c1)
       }
     } else if (kind === 'sweet') {
-      ctx.beginPath()
-      ctx.arc(x, y, inner * 0.72, 0, Math.PI * 2)
-      ctx.fillStyle = c0
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(x, y, inner * 0.52, 0, Math.PI * 2)
-      ctx.fillStyle = '#fff2c8'
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(x, y, inner * 0.28, 0, Math.PI * 2)
-      ctx.fillStyle = c1
-      ctx.fill()
-      ctx.fillStyle = '#5a3a18'
-      for (let i = 0; i < 8; i++) {
-        const a = i * Math.PI / 4
+      if (v === 1) {
+        blob(ctx, x - inner * 0.28, y + inner * 0.08, inner * 0.24, inner * 0.24, 0, c0)
+        blob(ctx, x + inner * 0.28, y + inner * 0.08, inner * 0.24, inner * 0.24, 0, c1)
+        blob(ctx, x, y - inner * 0.22, inner * 0.26, inner * 0.26, 0, '#fff6ea')
+      } else if (v === 2) {
         ctx.beginPath()
-        ctx.arc(x + Math.cos(a) * inner * 0.58, y + Math.sin(a) * inner * 0.58, Math.max(1.2, r * 0.045), 0, Math.PI * 2)
+        if (ctx.roundRect) ctx.roundRect(x - inner * 0.48, y - inner * 0.42, inner * 0.96, inner * 0.84, inner * 0.12)
+        else ctx.rect(x - inner * 0.48, y - inner * 0.42, inner * 0.96, inner * 0.84)
+        ctx.fillStyle = c0
         ctx.fill()
+        ctx.strokeStyle = c1
+        ctx.lineWidth = Math.max(1.4, r * 0.06)
+        ctx.strokeRect(x - inner * 0.28, y - inner * 0.22, inner * 0.56, inner * 0.44)
+      } else if (v === 3) {
+        ctx.strokeStyle = '#8a5a28'
+        ctx.lineWidth = Math.max(2, r * 0.06)
+        ctx.beginPath()
+        ctx.moveTo(x, y + inner * 0.55)
+        ctx.lineTo(x, y - inner * 0.55)
+        ctx.stroke()
+        blob(ctx, x, y - inner * 0.28, inner * 0.2, inner * 0.2, 0, '#c41e2a')
+        blob(ctx, x, y, inner * 0.18, inner * 0.18, 0, c0)
+        blob(ctx, x, y + inner * 0.26, inner * 0.16, inner * 0.16, 0, c1)
+      } else {
+        blob(ctx, x, y, inner * 0.72, inner * 0.72, 0, c0)
+        blob(ctx, x, y, inner * 0.52, inner * 0.52, 0, '#fff2c8')
+        blob(ctx, x, y, inner * 0.28, inner * 0.28, 0, c1)
+        for (let i = 0; i < 8; i++) {
+          const a = i * Math.PI / 4
+          blob(ctx, x + Math.cos(a) * inner * 0.58, y + Math.sin(a) * inner * 0.58, Math.max(1.2, r * 0.045), Math.max(1.2, r * 0.045), 0, '#5a3a18')
+        }
       }
     } else if (kind === 'drink') {
-      ctx.beginPath()
-      ctx.moveTo(x - inner * 0.38, y - inner * 0.42)
-      ctx.lineTo(x - inner * 0.52, y + inner * 0.48)
-      ctx.quadraticCurveTo(x, y + inner * 0.68, x + inner * 0.52, y + inner * 0.48)
-      ctx.lineTo(x + inner * 0.38, y - inner * 0.42)
-      ctx.closePath()
-      ctx.fillStyle = '#f7f1e4'
-      ctx.fill()
-      ctx.strokeStyle = '#8a6a48'
-      ctx.lineWidth = Math.max(1.2, r * 0.045)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(x - inner * 0.4, y - inner * 0.18)
-      ctx.lineTo(x - inner * 0.48, y + inner * 0.38)
-      ctx.quadraticCurveTo(x, y + inner * 0.52, x + inner * 0.48, y + inner * 0.38)
-      ctx.lineTo(x + inner * 0.4, y - inner * 0.18)
-      ctx.closePath()
-      ctx.fillStyle = c0
-      ctx.fill()
-      ctx.beginPath()
-      ctx.ellipse(x, y - inner * 0.42, inner * 0.38, inner * 0.12, 0, 0, Math.PI * 2)
-      ctx.fillStyle = '#fffef8'
-      ctx.fill()
-      ctx.stroke()
-    } else if (kind === 'fish') {
-      ctx.beginPath()
-      ctx.ellipse(x - inner * 0.08, y, inner * 0.62, inner * 0.38, 0, 0, Math.PI * 2)
-      ctx.fillStyle = c0
-      ctx.fill()
-      ctx.beginPath()
-      ctx.moveTo(x + inner * 0.42, y)
-      ctx.lineTo(x + inner * 0.82, y - inner * 0.32)
-      ctx.lineTo(x + inner * 0.7, y)
-      ctx.lineTo(x + inner * 0.82, y + inner * 0.32)
-      ctx.closePath()
-      ctx.fillStyle = c1
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(x - inner * 0.38, y - inner * 0.08, Math.max(2, r * 0.07), 0, Math.PI * 2)
-      ctx.fillStyle = '#1a120c'
-      ctx.fill()
-    } else if (kind === 'leaf') {
-      for (let i = -1; i <= 1; i++) {
+      if (v === 1) {
+        drawBowlBase(ctx, x, y, inner, c0, c1)
+      } else if (v === 2) {
         ctx.beginPath()
-        ctx.ellipse(x + i * inner * 0.22, y + i * inner * 0.04, inner * 0.28, inner * 0.52, i * 0.45, 0, Math.PI * 2)
-        ctx.fillStyle = i === 0 ? c0 : c1
+        ctx.moveTo(x - inner * 0.22, y - inner * 0.55)
+        ctx.lineTo(x - inner * 0.32, y + inner * 0.42)
+        ctx.quadraticCurveTo(x, y + inner * 0.62, x + inner * 0.32, y + inner * 0.42)
+        ctx.lineTo(x + inner * 0.22, y - inner * 0.55)
+        ctx.closePath()
+        ctx.fillStyle = '#f7f1e4'
         ctx.fill()
+        ctx.strokeStyle = '#8a6a48'
+        ctx.lineWidth = Math.max(1.2, r * 0.04)
+        ctx.stroke()
+        ctx.fillStyle = c0
+        ctx.fillRect(x - inner * 0.26, y - inner * 0.05, inner * 0.52, inner * 0.4)
+        ctx.strokeStyle = c1
+        ctx.beginPath()
+        ctx.moveTo(x + inner * 0.08, y - inner * 0.2)
+        ctx.quadraticCurveTo(x + inner * 0.45, y - inner * 0.35, x + inner * 0.2, y - inner * 0.55)
+        ctx.stroke()
+      } else if (v === 3) {
+        blob(ctx, x, y + inner * 0.08, inner * 0.62, inner * 0.55, 0, '#f4efe2')
+        blob(ctx, x, y + inner * 0.12, inner * 0.4, inner * 0.34, 0, c0)
+        blob(ctx, x, y - inner * 0.42, inner * 0.18, inner * 0.12, 0, '#6a8a48')
+      } else {
+        ctx.beginPath()
+        ctx.moveTo(x - inner * 0.38, y - inner * 0.42)
+        ctx.lineTo(x - inner * 0.52, y + inner * 0.48)
+        ctx.quadraticCurveTo(x, y + inner * 0.68, x + inner * 0.52, y + inner * 0.48)
+        ctx.lineTo(x + inner * 0.38, y - inner * 0.42)
+        ctx.closePath()
+        ctx.fillStyle = '#f7f1e4'
+        ctx.fill()
+        ctx.strokeStyle = '#8a6a48'
+        ctx.lineWidth = Math.max(1.2, r * 0.045)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(x - inner * 0.4, y - inner * 0.18)
+        ctx.lineTo(x - inner * 0.48, y + inner * 0.38)
+        ctx.quadraticCurveTo(x, y + inner * 0.52, x + inner * 0.48, y + inner * 0.38)
+        ctx.lineTo(x + inner * 0.4, y - inner * 0.18)
+        ctx.closePath()
+        ctx.fillStyle = c0
+        ctx.fill()
+        blob(ctx, x, y - inner * 0.42, inner * 0.38, inner * 0.12, 0, '#fffef8')
+        ctx.stroke()
       }
+    } else if (kind === 'fish') {
+      if (v === 1) {
+        blob(ctx, x, y, inner * 0.42, inner * 0.28, -0.4, c0)
+        blob(ctx, x - inner * 0.38, y + inner * 0.08, inner * 0.22, inner * 0.14, 0.8, c1)
+        blob(ctx, x + inner * 0.34, y - inner * 0.16, inner * 0.16, inner * 0.1, -0.6, c1)
+        blob(ctx, x - inner * 0.08, y - inner * 0.02, inner * 0.05, inner * 0.05, 0, '#1a120c')
+      } else if (v === 2) {
+        blob(ctx, x - inner * 0.22, y + inner * 0.04, inner * 0.28, inner * 0.16, -0.3, c0)
+        blob(ctx, x + inner * 0.16, y - inner * 0.06, inner * 0.26, inner * 0.15, 0.2, c1)
+        blob(ctx, x + inner * 0.02, y + inner * 0.16, inner * 0.2, inner * 0.1, 0, '#f3d7b0')
+      } else if (v === 3) {
+        blob(ctx, x, y, inner * 0.42, inner * 0.32, 0, c0)
+        blob(ctx, x - inner * 0.48, y - inner * 0.05, inner * 0.16, inner * 0.1, -0.6, c1)
+        blob(ctx, x + inner * 0.48, y - inner * 0.05, inner * 0.16, inner * 0.1, 0.6, c1)
+        blob(ctx, x - inner * 0.1, y - inner * 0.04, inner * 0.05, inner * 0.05, 0, '#1a120c')
+        blob(ctx, x + inner * 0.12, y - inner * 0.04, inner * 0.05, inner * 0.05, 0, '#1a120c')
+      } else {
+        blob(ctx, x - inner * 0.08, y, inner * 0.62, inner * 0.38, 0, c0)
+        ctx.beginPath()
+        ctx.moveTo(x + inner * 0.42, y)
+        ctx.lineTo(x + inner * 0.82, y - inner * 0.32)
+        ctx.lineTo(x + inner * 0.7, y)
+        ctx.lineTo(x + inner * 0.82, y + inner * 0.32)
+        ctx.closePath()
+        ctx.fillStyle = c1
+        ctx.fill()
+        blob(ctx, x - inner * 0.38, y - inner * 0.08, Math.max(2, r * 0.07), Math.max(2, r * 0.07), 0, '#1a120c')
+      }
+    } else if (kind === 'leaf') {
+      if (v === 1) {
+        ctx.beginPath()
+        ctx.moveTo(x, y - inner * 0.55)
+        ctx.quadraticCurveTo(x + inner * 0.7, y, x, y + inner * 0.55)
+        ctx.quadraticCurveTo(x - inner * 0.7, y, x, y - inner * 0.55)
+        ctx.fillStyle = c0
+        ctx.fill()
+        ctx.strokeStyle = c1
+        ctx.lineWidth = Math.max(1.2, r * 0.045)
+        ctx.beginPath()
+        ctx.moveTo(x, y - inner * 0.4)
+        ctx.lineTo(x, y + inner * 0.4)
+        ctx.stroke()
+      } else if (v === 2) {
+        for (let i = -1; i <= 1; i++) blob(ctx, x + i * inner * 0.24, y, inner * 0.12, inner * 0.48, i * 0.15, i === 0 ? c0 : c1)
+      } else if (v === 3) {
+        blob(ctx, x, y + inner * 0.06, inner * 0.62, inner * 0.48, 0, c1)
+        blob(ctx, x, y - inner * 0.08, inner * 0.4, inner * 0.28, 0, c0)
+        blob(ctx, x - inner * 0.1, y - inner * 0.02, inner * 0.12, inner * 0.08, 0, '#f4e7c4')
+      } else {
+        for (let i = -1; i <= 1; i++) blob(ctx, x + i * inner * 0.22, y + i * inner * 0.04, inner * 0.28, inner * 0.52, i * 0.45, i === 0 ? c0 : c1)
+      }
+    } else if (v === 1) {
+      blob(ctx, x, y, inner * 0.62, inner * 0.62, 0, c1)
+      blob(ctx, x, y, inner * 0.34, inner * 0.34, 0, '#fff6e4')
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3
+        blob(ctx, x + Math.cos(a) * inner * 0.48, y + Math.sin(a) * inner * 0.48, Math.max(1.3, r * 0.05), Math.max(1.3, r * 0.05), 0, c0)
+      }
+    } else if (v === 2) {
+      blob(ctx, x, y + inner * 0.16, inner * 0.58, inner * 0.22, 0, c1)
+      blob(ctx, x, y - inner * 0.02, inner * 0.5, inner * 0.2, 0, c0)
+      blob(ctx, x, y - inner * 0.2, inner * 0.36, inner * 0.16, 0, '#fff6e4')
+    } else if (v === 3) {
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * Math.PI * 2 / 5
+        blob(ctx, x + Math.cos(a) * inner * 0.34, y + Math.sin(a) * inner * 0.34, inner * 0.22, inner * 0.22, a, i % 2 ? c0 : c1)
+      }
+      blob(ctx, x, y, inner * 0.16, inner * 0.16, 0, '#fff6e4')
     } else {
-      ctx.beginPath()
-      ctx.arc(x, y, inner * 0.7, 0, Math.PI * 2)
-      ctx.fillStyle = c1
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(x, y, inner * 0.58, 0, Math.PI * 2)
-      ctx.fillStyle = c0
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(x - inner * 0.18, y - inner * 0.2, inner * 0.22, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(255,255,255,0.28)'
-      ctx.fill()
+      blob(ctx, x, y, inner * 0.7, inner * 0.7, 0, c1)
+      blob(ctx, x, y, inner * 0.58, inner * 0.58, 0, c0)
+      blob(ctx, x - inner * 0.18, y - inner * 0.2, inner * 0.22, inner * 0.22, 0, 'rgba(255,255,255,0.28)')
     }
   }
 

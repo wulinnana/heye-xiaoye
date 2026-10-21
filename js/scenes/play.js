@@ -21,9 +21,9 @@ GameGlobal.GameReg('scenePlay', function (GM) {
     const h = plat.height
     const left = 30
     const right = w - 30
-    const top = plat.safeTop + 112
+    const top = plat.safeTop + 172
     const floor = h - 158 - plat.safeBottom
-    return { left: left, right: right, top: top, floor: floor, boxW: right - left, danger: top + 56 }
+    return { left: left, right: right, top: top, floor: floor, boxW: right - left, danger: top + 18 }
   }
 
   function rollType(boosted) {
@@ -127,6 +127,8 @@ GameGlobal.GameReg('scenePlay', function (GM) {
     }
     run.bodies = keep
     run.over = false
+    run.won = false
+    run.ending = null
     run.usedRevive = true
     warning = 0
     paused = false
@@ -145,12 +147,21 @@ GameGlobal.GameReg('scenePlay', function (GM) {
     return !paused && GM.run && !GM.run.over && !GM.run.won && !ui.state.modal && !flying() && (time - lastDrop > 0.18)
   }
 
+  function heldPose(b) {
+    const run = GM.run
+    const gr = phy.radius(run.current, b.boxW, run.maxType)
+    const room = b.top - (plat.safeTop + 62)
+    const vr = Math.min(gr, Math.max(22, room / 2 - 6))
+    return { gr: gr, vr: vr, gy: b.top - 10 - vr }
+  }
+
   function drop() {
     const run = GM.run
     if (!canDrop()) return
     const b = box()
     const type = run.current
-    const body = phy.makeBody(holdX, b.danger + phy.radius(type, b.boxW, run.maxType) + 4, type, b.boxW, run.maxType)
+    const pose = heldPose(b)
+    const body = phy.makeBody(holdX, pose.gy, type, b.boxW, run.maxType)
     body.vy = 40
     body.vx = (Math.random() - 0.5) * 28
     body.pop = 1
@@ -169,56 +180,109 @@ GameGlobal.GameReg('scenePlay', function (GM) {
     const run = GM.run
     const list = foods()
     const food = list[ev.type] || list[list.length - 1]
+    const chained = comboT > 0.25
     comboT = 0.9
     combo += 1
     const add = food.score * Math.min(combo, 6)
     run.score += add
     if (ev.type > run.highest) run.highest = ev.type
     if (GM.storage.unlockFood(run.provinceId, ev.type)) ui.toast('新食物：' + food.name)
-    GM.particles.burst(ev.x, ev.y, food.colors[0], 14 + ev.type * 2)
+    GM.particles.burst(ev.x, ev.y, food.colors[0], 8 + ev.type)
     GM.particles.floatText(ev.x, ev.y - 12, food.name + '  +' + add, '#c81e2b')
     GM.audio.merge(ev.type)
-    if (combo >= 2) GM.audio.combo()
-    shake = Math.min(2.2, Math.max(shake, 0.4 + ev.type * 0.12))
+    if (combo >= 2 && chained) GM.audio.combo()
+    shake = Math.min(1.2, Math.max(shake, 0.25 + ev.type * 0.06))
     if (ev.type >= run.goal) win()
   }
 
-  function win() {
+  function nudgePile(up) {
     const run = GM.run
-    if (run.won || run.over) return
-    run.won = true
+    for (let i = 0; i < run.bodies.length; i++) {
+      const body = run.bodies[i]
+      body.vy = -up - Math.random() * up * 0.6
+      body.vx += (Math.random() - 0.5) * 70
+      body.spin = (Math.random() - 0.5) * 4
+      body.lock = 9
+    }
+  }
+
+  function beginEnding(won) {
+    const run = GM.run
+    if (!run || run.ending || run.over) return
     run.over = true
-    GM.audio.win()
-    plat.vibrate(true)
-    GM.storage.setStars(run.cityId + '-' + run.level, 1)
-    setTimeout(function () {
-      GM.go('result', { won: true })
-    }, 550)
+    run.won = won
+    run.ending = won ? 'win' : 'lose'
+    run.endingT = 0
+    run.endingDur = won ? 1.15 : 1.25
+    const b = box()
+    if (won) {
+      GM.audio.win()
+      plat.vibrate(true)
+      GM.storage.setStars(run.cityId + '-' + run.level, 1)
+      const food = foods()[run.goal] || foods()[0]
+      GM.particles.burst(b.left + b.boxW / 2, b.top + 80, food.colors[0], 18)
+      nudgePile(28)
+    } else {
+      GM.audio.over()
+      plat.vibrate(true)
+      warning = 1
+      GM.particles.burst(b.left + b.boxW / 2, b.danger + 20, '#c41e2a', 12)
+      nudgePile(70)
+    }
+  }
+
+  function win() {
+    beginEnding(true)
   }
 
   function update(dt) {
     time += dt
-    if (paused || GM.ads.mock.active || !GM.run || GM.run.over) {
+    const run = GM.run
+    if (paused || GM.ads.mock.active || !run) {
       comboT = Math.max(0, comboT - dt)
       return
     }
+    if (run.ending) {
+      run.endingT += dt
+      if (shake > 0) shake = Math.max(0, shake - dt * 16)
+      const b = box()
+      phy.step({
+        bodies: run.bodies,
+        left: b.left + 10,
+        right: b.right - 10,
+        floor: b.floor - 10,
+        boxW: b.boxW,
+        maxType: run.maxType,
+        gravity: cfg.gravity * 0.72,
+        noMerge: true
+      }, dt)
+      if (run.endingT >= run.endingDur) {
+        const won = !!run.won
+        run.ending = null
+        GM.go('result', { won: won })
+      }
+      return
+    }
+    if (run.over) return
     comboT -= dt
     if (comboT <= 0) combo = 0
     if (shake > 0) shake = Math.max(0, shake - dt * 28)
 
     const b = box()
     const world = {
-      bodies: GM.run.bodies,
+      bodies: run.bodies,
       left: b.left + 10,
       right: b.right - 10,
       floor: b.floor - 10,
       boxW: b.boxW,
-      maxType: GM.run.maxType,
-      gravity: cfg.gravity
+      maxType: run.maxType,
+      gravity: cfg.gravity,
+      mergeWait: run.mergeWait || 0
     }
     const events = phy.step(world, dt)
+    run.mergeWait = world.mergeWait || 0
     for (let i = 0; i < events.length; i++) applyMerge(events[i])
-    if (GM.run.won) return
+    if (run.won) return
 
     let danger = false
     for (let i = 0; i < GM.run.bodies.length; i++) {
@@ -237,14 +301,7 @@ GameGlobal.GameReg('scenePlay', function (GM) {
   }
 
   function gameOver() {
-    if (GM.run.over) return
-    GM.run.over = true
-    GM.run.won = false
-    GM.audio.over()
-    plat.vibrate(true)
-    setTimeout(function () {
-      GM.go('result', { won: false })
-    }, 400)
+    beginEnding(false)
   }
 
   function drawChip(ctx, x, y, r, food) {
@@ -282,27 +339,33 @@ GameGlobal.GameReg('scenePlay', function (GM) {
     ctx.stroke()
     ctx.setLineDash([])
     ctx.globalAlpha = 1
-    ctx.fillStyle = th.red
-    ctx.font = 'bold 13px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('不要越过这条线', (b.left + b.right) / 2, b.danger - 10)
 
     if (run) {
-      for (let i = 0; i < run.bodies.length; i++) drawFood(ctx, run.bodies[i])
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(b.left + 4, b.top + 4, bw - 8, bh - 8)
+      ctx.clip()
+      for (let i = 0; i < run.bodies.length; i++) {
+        if (run.bodies[i].y > b.top) drawFood(ctx, run.bodies[i])
+      }
+      ctx.restore()
+      for (let i = 0; i < run.bodies.length; i++) {
+        if (run.bodies[i].y <= b.top) drawFood(ctx, run.bodies[i])
+      }
       if (!run.over) {
-        const gr = phy.radius(run.current, b.boxW, run.maxType)
-        const gy = b.danger + gr + 3
+        const pose = heldPose(b)
         ctx.globalAlpha = canDrop() ? 1 : 0.55
-        drawChip(ctx, holdX, gy, gr, foods()[run.current])
-        ctx.globalAlpha = 1
+        drawChip(ctx, holdX, pose.gy, pose.vr, foods()[run.current])
+        ctx.globalAlpha = 0.4
         ctx.strokeStyle = th.red
         ctx.lineWidth = 2
         ctx.setLineDash([5, 6])
         ctx.beginPath()
-        ctx.moveTo(holdX, gy + gr + 2)
+        ctx.moveTo(holdX, pose.gy + pose.vr + 4)
         ctx.lineTo(holdX, b.floor - 12)
         ctx.stroke()
         ctx.setLineDash([])
+        ctx.globalAlpha = 1
       }
     }
     GM.particles.draw(ctx)
@@ -374,6 +437,24 @@ GameGlobal.GameReg('scenePlay', function (GM) {
       tools._resume = { x: w / 2 - 90, y: plat.height * 0.44, w: 180, h: 48 }
       tools._settings = { x: w / 2 - 90, y: plat.height * 0.44 + 58, w: 180, h: 44 }
       tools._home = { x: w / 2 - 90, y: plat.height * 0.44 + 112, w: 180, h: 44 }
+    }
+
+    if (run && run.ending) {
+      const fade = Math.min(1, run.endingT / 0.45)
+      const wash = Math.min(0.42, (run.endingT / run.endingDur) * 0.42)
+      ctx.fillStyle = run.won ? 'rgba(255,246,220,' + wash + ')' : 'rgba(70,18,16,' + wash + ')'
+      ctx.fillRect(0, 0, w, plat.height)
+      ctx.globalAlpha = fade
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = run.won ? th.green : '#fff8ee'
+      ctx.font = ui.font(34)
+      ctx.fillText(run.won ? '本关完成' : '摊位爆了', w / 2, plat.height * 0.4)
+      ctx.font = ui.font(16)
+      ctx.fillStyle = run.won ? th.ink : '#f3d7c4'
+      ctx.fillText(run.won ? '招牌已经合成出来了' : '红线以上堆太久了', w / 2, plat.height * 0.4 + 36)
+      ctx.globalAlpha = 1
+      ctx.textBaseline = 'alphabetic'
     }
   }
 
@@ -462,9 +543,11 @@ GameGlobal.GameReg('scenePlay', function (GM) {
   }
 
   function onTouchStart(x, y) {
+    if (GM.run && GM.run.ending) return
     if (GM.run && !GM.run.over && !paused) {
+      if (tools._pause && ui.hit(tools._pause, x, y)) return
       const b = box()
-      if (y < b.floor && y > b.top) {
+      if (y < b.floor && y > plat.safeTop + 64) {
         holding = true
         holdX = Math.max(b.left + 28, Math.min(b.right - 28, x))
       }
@@ -478,6 +561,7 @@ GameGlobal.GameReg('scenePlay', function (GM) {
   }
 
   function onTouchEnd(x, y) {
+    if (GM.run && GM.run.ending) return
     if (paused) {
       if (tools._resume && ui.hit(tools._resume, x, y)) { paused = false; return }
       if (tools._settings && ui.hit(tools._settings, x, y)) {
